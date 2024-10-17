@@ -37,8 +37,10 @@ class TableCreator(DataBase):
             DROP TABLE IF EXISTS users;
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                second_name TEXT NOT NULL,
+                third_name TEXT NOT NULL,
+                us_group TEXT NOT NULL,
                 username TEXT NOT NULL,
                 administrator BOOLEAN DEFAULT false,
                 chat_id BIGINT NOT NULL UNIQUE
@@ -82,6 +84,19 @@ class UserManager(DataBase):
         """
         return self.manager(sql, chat_id, fetchone=True)
 
+    def user_exists(self,chat_id):
+        sql = """
+        SELECT 1 FROM users WHERE chat_id = %s;
+        """
+        return self.manager(sql, chat_id, fetchone=True)
+
+    def add_user(self, first_name, second_name, third_name, us_group, username, chat_id):
+        sql = """
+               INSERT INTO users(first_name, second_name, third_name, us_group, username, chat_id)
+               VALUES (%s, %s, %s, %s, %s, %s);
+           """
+        self.manager(sql, first_name, second_name, third_name, us_group, username, chat_id, commit=True)
+
 
 class StaticQuestionManager(DataBase):
     pass
@@ -111,5 +126,5 @@ class MainManager:
 
 
 creator = TableCreator()
-# creator.create_user_table()
-# creator.create_dynamic_question_table()
+creator.create_user_table()
+creator.create_dynamic_question_table()

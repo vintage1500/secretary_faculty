@@ -1,6 +1,38 @@
+from warnings import catch_warnings
+
 from telebot.types import Message
 from data.loader import bot, manager
+from database.database import UserManager
+from keyboards.default import start_menu, reg_menu
 
+
+@bot.message_handler(func=lambda msg: msg.text == "Регистрация")
+def register(message: Message):
+    chat_id = message.chat.id
+    us_ex = manager.user.user_exists(chat_id)
+    if us_ex:
+        bot.send_message(chat_id," Вы уже вошли в систему")
+    else:
+        bot.send_message(chat_id, f"Введите свои ФИО и номер группы\n"
+                                  f"Сообщение должно иметь такой вид:\n"
+                                  f"Иванов Иван Иванович\n222-222\n"
+                                  f"Все должно быть одним сообщением!")
+        bot.register_next_step_handler(message, get_new_user, message.text)
+
+def get_new_user(message: Message, text):
+    try:
+        chat_id = message.chat.id
+        student_info = message.text.split()
+        first_name = student_info[0]
+        second_name = student_info[1]
+        third_name = student_info[2]
+        us_group = student_info[3]
+        username = message.from_user.username
+        manager.user.add_user(first_name, second_name, third_name, us_group, username, chat_id,)
+        bot.send_message(chat_id, "Регистрация прошла успешно",reply_markup=start_menu(chat_id) )
+    except Exception as e:
+        bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
+                         reply_markup=reg_menu(chat_id))
 
 @bot.message_handler(func=lambda msg: msg.text == "Часто задаваемые вопросы")
 def start_register(message: Message):
