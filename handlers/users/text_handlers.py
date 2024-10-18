@@ -19,6 +19,7 @@ def register(message: Message):
                                   f"Все должно быть одним сообщением!")
         bot.register_next_step_handler(message, get_new_user, message.text)
 
+
 def get_new_user(message: Message, text):
     try:
         chat_id = message.chat.id
@@ -33,6 +34,7 @@ def get_new_user(message: Message, text):
     except Exception as e:
         bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
                          reply_markup=reg_menu(chat_id))
+
 
 @bot.message_handler(func=lambda msg: msg.text == "Часто задаваемые вопросы")
 def start_register(message: Message):
