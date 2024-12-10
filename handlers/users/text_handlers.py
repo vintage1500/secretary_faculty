@@ -2,8 +2,7 @@ from warnings import catch_warnings
 
 from telebot.types import Message
 from data.loader import bot, manager
-from database.database import UserManager
-from keyboards.default import start_menu, reg_menu
+from keyboards.inline import show_static_question_category, start_menu, registration_menu
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Регистрация")
@@ -30,15 +29,16 @@ def get_new_user(message: Message, text):
         us_group = student_info[3]
         username = message.from_user.username
         manager.user.add_user(first_name, second_name, third_name, us_group, username, chat_id,)
-        bot.send_message(chat_id, "Регистрация прошла успешно",reply_markup=start_menu(chat_id) )
+        bot.send_message(chat_id, "Регистрация прошла успешно",reply_markup=start_menu())
     except Exception as e:
         bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
-                         reply_markup=reg_menu(chat_id))
+                         reply_markup=registration_menu())
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Часто задаваемые вопросы")
 def start_register(message: Message):
     chat_id = message.chat.id
+    bot.send_message(chat_id, "Выберите нужную вам сферу", reply_markup=show_static_question_category())
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Задать вопрос")
@@ -53,9 +53,6 @@ def start_ask_question(message: Message):
 
 def get_new_question(message: Message, text):
     chat_id = message.chat.id
-    print(text)
-
-    # bot.register_next_step_handler(message, request_new_question, message.text)
     request_new_question(message, message.text)
 
 
@@ -70,7 +67,7 @@ def request_new_question(message: Message, question_text):
     bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных")
 
 
-@bot.message_handler(func=lambda msg: msg.text == "Принять запрос")
+# @bot.message_handler(func=lambda msg: msg.text == "Принять запрос")
 def start_answer_question(message: Message):
     chat_id = message.chat.id
     unanswered_questions = manager.dynamic_question.get_has_dynamic_question()

@@ -1,7 +1,7 @@
 import psycopg2
 from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD
 from datetime import datetime
-
+# зачем нам chat_id в частозадаваемых
 
 class DataBase:
     def __init__(self):
@@ -54,8 +54,8 @@ class TableCreator(DataBase):
             CREATE TABLE IF NOT EXISTS static_questions (
                 static_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT NOT NULL,
-                description TEXT NOT NULL,
-                chat_id BIGINT NOT NULL UNIQUE
+                category TEXT NOT NULL,
+                answer TEXT NOT NULL
             ); 
         """
         self.manager(sql, commit=True)
@@ -84,7 +84,7 @@ class UserManager(DataBase):
         """
         return self.manager(sql, chat_id, fetchone=True)
 
-    def user_exists(self,chat_id):
+    def user_exists(self, chat_id):
         sql = """
         SELECT 1 FROM users WHERE chat_id = %s;
         """
@@ -99,7 +99,18 @@ class UserManager(DataBase):
 
 
 class StaticQuestionManager(DataBase):
-    pass
+    def get_static_question_category(self):
+        sql = """
+            SELECT category FROM static_questions;
+        """
+        return self.manager(sql, fetchall=True)
+
+    def get_all_static_question_by_category(self, category):
+        sql = """
+            SELECT * FROM static_questions
+            WHERE category = 'first_category';
+        """
+        return self.manager(sql, fetchall=True)
 
 
 class DynamicQuestionManager(DataBase):
@@ -126,5 +137,6 @@ class MainManager:
 
 
 creator = TableCreator()
-creator.create_user_table()
-creator.create_dynamic_question_table()
+# creator.create_user_table()
+# creator.create_static_question_table()
+# creator.create_dynamic_question_table()
