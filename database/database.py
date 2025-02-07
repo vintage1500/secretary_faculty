@@ -97,6 +97,12 @@ class UserManager(DataBase):
            """
         self.manager(sql, first_name, second_name, third_name, us_group, username, chat_id, commit=True)
 
+    def get_full_user_info(self, chat_id):
+        sql = """
+            SELECT first_name, second_name, third_name, us_group, administrator FROM users;
+        """
+        return self.manager(sql, chat_id, fetchone=True)
+
 
 class StaticQuestionManager(DataBase):
     def get_static_question_category(self):

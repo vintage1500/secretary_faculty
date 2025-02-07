@@ -29,7 +29,7 @@ def get_new_user(message: Message, text):
         us_group = student_info[3]
         username = message.from_user.username
         manager.user.add_user(first_name, second_name, third_name, us_group, username, chat_id,)
-        bot.send_message(chat_id, "Регистрация прошла успешно",reply_markup=start_menu())
+        bot.send_message(chat_id, "Регистрация прошла успешно", reply_markup=start_menu())
     except Exception as e:
         bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
                          reply_markup=registration_menu())

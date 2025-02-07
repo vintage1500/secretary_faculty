@@ -44,6 +44,15 @@ def show_static_question_category():
     buttons = [InlineKeyboardButton(text=category[0], callback_data=f"category_{category[0]}") for
                category in categories]
     markup.add(*buttons)
+    markup.add(
+        InlineKeyboardButton(text="Назад", callback_data=f"main")
+    )
     return markup
 
 
+def back_main():
+    markup = InlineKeyboardMarkup(row_width=True)
+    markup.add(
+        InlineKeyboardButton(text="Назад", callback_data=f"main")
+    )
+    return markup
