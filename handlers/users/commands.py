@@ -16,7 +16,7 @@ def start(message: Message):
             bot.send_message(chat_id, text, reply_markup=start_menu())
         else:
             text += ". Пройдите регистрацию"
-            bot.send_message(chat_id, text, reply_markup=registation_menu(chat_id))
+            bot.send_message(chat_id, text, reply_markup=registration_menu(chat_id))
     else:
         text += ". У вас роль администратора!"
         bot.send_message(chat_id, text, reply_markup=start_administrator_menu())

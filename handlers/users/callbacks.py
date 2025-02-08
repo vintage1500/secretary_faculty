@@ -4,6 +4,20 @@ from keyboards.inline import (show_static_question_category, start_menu, start_a
                               back_main)
 
 
+@bot.callback_query_handler(func=lambda call: "registration" in call.data)
+def start_registration(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    # us_ex = manager.user.user_exists(chat_id)
+    # if us_ex:
+    #     bot.send_message(chat_id, " Вы уже вошли в систему")
+    # else:
+    #     bot.send_message(chat_id, f"Введите свои ФИО и номер группы\n"
+    #                               f"Сообщение должно иметь такой вид:\n"
+    #                               f"Иванов Иван Иванович\n222-222\n"
+    #                               f"Все должно быть одним сообщением!")
+    #     bot.register_next_step_handler(message, get_new_user, message.text)
+
+
 @bot.callback_query_handler(func=lambda call: "main" in call.data)
 def back_to_main_menu(callback: CallbackQuery):
     chat_id = callback.message.chat.id
@@ -40,4 +54,11 @@ def show_profile(callback: CallbackQuery):
               f"Группа: {user_info[3]}")
     if user_info[4]:
         string += "\nВы являетесь администратором"
+    bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
+
+
+@bot.callback_query_handler(func=lambda call: "rules" in call.data)
+def show_rules(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    string = "🔖 Используя сервис Секретарь Факультета, Вы автоматически принимаете и соглашаетесь с данными правилами*"
     bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
