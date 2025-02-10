@@ -3,6 +3,7 @@ from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD
 from datetime import datetime
 # зачем нам chat_id в частозадаваемых
 
+
 class DataBase:
     def __init__(self):
         self.database = psycopg2.connect(
@@ -99,7 +100,8 @@ class UserManager(DataBase):
 
     def get_full_user_info(self, chat_id):
         sql = """
-            SELECT first_name, second_name, third_name, us_group, administrator FROM users;
+            SELECT first_name, second_name, third_name, us_group, administrator FROM users
+            WHERE chat_id = %s;
         """
         return self.manager(sql, chat_id, fetchone=True)
 

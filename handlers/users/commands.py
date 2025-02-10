@@ -1,6 +1,7 @@
 from telebot.types import Message
 from data.loader import bot, manager
-from keyboards.inline import start_menu, start_administrator_menu, registration_menu
+from keyboards.default import registration_menu
+from keyboards.inline import start_menu, start_administrator_menu
 
 
 @bot.message_handler(commands=['start'], chat_types='private')
@@ -15,8 +16,8 @@ def start(message: Message):
             text += ". Вы вошли в систему"
             bot.send_message(chat_id, text, reply_markup=start_menu())
         else:
-            text += ". Пройдите регистрацию"
-            bot.send_message(chat_id, text, reply_markup=registration_menu(chat_id))
+            text += ". Пройдите регистрацию\n"
+            bot.send_message(chat_id, text, reply_markup=registration_menu())
     else:
         text += ". У вас роль администратора!"
         bot.send_message(chat_id, text, reply_markup=start_administrator_menu())

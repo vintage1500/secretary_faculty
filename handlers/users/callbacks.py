@@ -1,21 +1,7 @@
-from telebot.types import CallbackQuery
+from telebot.types import CallbackQuery, Message
 from data.loader import bot, manager
-from keyboards.inline import (show_static_question_category, start_menu, start_administrator_menu, registration_menu,
-                              back_main)
-
-
-@bot.callback_query_handler(func=lambda call: "registration" in call.data)
-def start_registration(callback: CallbackQuery):
-    chat_id = callback.message.chat.id
-    # us_ex = manager.user.user_exists(chat_id)
-    # if us_ex:
-    #     bot.send_message(chat_id, " Вы уже вошли в систему")
-    # else:
-    #     bot.send_message(chat_id, f"Введите свои ФИО и номер группы\n"
-    #                               f"Сообщение должно иметь такой вид:\n"
-    #                               f"Иванов Иван Иванович\n222-222\n"
-    #                               f"Все должно быть одним сообщением!")
-    #     bot.register_next_step_handler(message, get_new_user, message.text)
+from keyboards.default import registration_menu
+from keyboards.inline import show_static_question_category, start_menu, start_administrator_menu, back_main
 
 
 @bot.callback_query_handler(func=lambda call: "main" in call.data)
@@ -32,7 +18,7 @@ def back_to_main_menu(callback: CallbackQuery):
             bot.edit_message_text(text, chat_id, callback.message.message_id, reply_markup=start_menu())
         else:
             text += ". Пройдите регистрацию"
-            bot.send_message(text, chat_id, callback.message.message_id,  reply_markup=registration_menu(chat_id))
+            bot.send_message(text, chat_id, callback.message.message_id,  reply_markup=registration_menu())
     else:
         text += ". У вас роль администратора!"
         bot.send_message(text, chat_id, callback.message.message_id, reply_markup=start_administrator_menu())
@@ -62,3 +48,28 @@ def show_rules(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     string = "🔖 Используя сервис Секретарь Факультета, Вы автоматически принимаете и соглашаетесь с данными правилами*"
     bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
+
+
+@bot.callback_query_handler(func=lambda call: "ask" in call.data)
+def start_ask_question(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    # bot.delete_message(chat_id, callback.message.id)
+    bot.edit_message_text(f"Введите интересующий вас вопрос\n"
+                              f"В запросе обязательно должны в такой форме:\n"
+                              f"Иванов Иван\n222-222\n*Вопрос*\n"
+                              f"Все должно быть одним сообщением!",
+                          chat_id, callback.message.message_id, reply_markup=back_main())
+    bot.register_next_step_handler(callback.message, get_new_question)
+
+
+def get_new_question(message: Message):
+    chat_id = message.chat.id
+    question_text = message.text
+    student_info = question_text.split("\n")
+    student_name = student_info[0]
+    student_group = student_info[1]
+    student_question = student_info[2]
+    student_username = message.from_user.username
+    manager.dynamic_question.add_dynamic_question(student_name, student_group, student_question, student_username,
+                                                  chat_id)
+    bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных", reply_markup=start_menu())

@@ -29,7 +29,7 @@ def start_menu():
 def start_administrator_menu():
     markup = InlineKeyboardMarkup(row_width=True)
     markup.row(
-        InlineKeyboardButton(text="Ответить на вопрос", callback_data=f"ask")
+        InlineKeyboardButton(text="Ответить на вопрос", callback_data=f"answer")
     )
     markup.row(
         InlineKeyboardButton(text="Профиль", callback_data=f"profile"),
