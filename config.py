@@ -8,7 +8,7 @@ ADMINS = ''
 
 DB_NAME = 'secretary_faculty'
 DB_HOST = 'localhost'
-DB_PASSWORD = '123'
+DB_PASSWORD = '12345678'
 DB_PORT = ''
 DB_USER = 'postgres'
 

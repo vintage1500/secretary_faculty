@@ -38,9 +38,9 @@ class TableCreator(DataBase):
             DROP TABLE IF EXISTS users;
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                last_name TEXT NOT NULL,
                 first_name TEXT NOT NULL,
-                second_name TEXT NOT NULL,
-                third_name TEXT NOT NULL,
+                patronymic TEXT NOT NULL,
                 us_group TEXT NOT NULL,
                 username TEXT NOT NULL,
                 administrator BOOLEAN DEFAULT false,
@@ -55,7 +55,7 @@ class TableCreator(DataBase):
             CREATE TABLE IF NOT EXISTS static_questions (
                 static_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT NOT NULL,
-                category TEXT NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES question_categories(category_id) ON DELETE CASCADE,
                 answer TEXT NOT NULL
             ); 
         """
@@ -64,7 +64,7 @@ class TableCreator(DataBase):
     def create_dynamic_question_table(self):
         sql = """
             DROP TABLE IF EXISTS dynamic_questions;
-            CREATE TABLE IF NOT EXISTS dynamic_questions (
+            CREATE TABLE IF NOT EXISTS dynamic_questions1 (
                 dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 student_name TEXT NOT NULL,
                 student_group TEXT NOT NULL,
@@ -72,6 +72,23 @@ class TableCreator(DataBase):
                 student_username TEXT NOT NULL,
                 student_chat_id TEXT NOT NULL,
                 answer BOOLEAN DEFAULT false
+            );
+            CREATE TABLE IF NOT EXISTS dynamic_questions (
+                dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                description TEXT NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES question_categories(category_id) ON DELETE CASCADE,
+                answer BOOLEAN DEFAULT false
+            );
+        """
+        self.manager(sql, commit=True)
+
+    def create_question_categories(self):
+        sql = """
+            DROP TABLE IF EXISTS question_categories;
+            CREATE TABLE IF NOT EXISTS question_categories (
+                category_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL
             );
         """
         self.manager(sql, commit=True)
@@ -91,50 +108,83 @@ class UserManager(DataBase):
         """
         return self.manager(sql, chat_id, fetchone=True)
 
-    def add_user(self, first_name, second_name, third_name, us_group, username, chat_id):
+    def add_user(self, last_name, first_name, patronymic, us_group, username, chat_id):
         sql = """
-               INSERT INTO users(first_name, second_name, third_name, us_group, username, chat_id)
+               INSERT INTO users(last_name, first_name, patronymic, us_group, username, chat_id)
                VALUES (%s, %s, %s, %s, %s, %s);
            """
-        self.manager(sql, first_name, second_name, third_name, us_group, username, chat_id, commit=True)
+        self.manager(sql, last_name, first_name, patronymic, us_group, username, chat_id, commit=True)
 
     def get_full_user_info(self, chat_id):
         sql = """
-            SELECT first_name, second_name, third_name, us_group, administrator FROM users
+            SELECT last_name, first_name, patronymic, us_group, administrator FROM users
+            WHERE chat_id = %s;
+        """
+        return self.manager(sql, chat_id, fetchone=True)
+
+    def get_first_name(self, chat_id):
+        sql = """
+            SELECT first_name FROM users
+            WHERE chat_id = %s;
+        """
+        return self.manager(sql, chat_id, fetchone=True)
+
+    def get_user_id(self, chat_id):
+        sql = """
+            SELECT user_id FROM users
             WHERE chat_id = %s;
         """
         return self.manager(sql, chat_id, fetchone=True)
 
 
 class StaticQuestionManager(DataBase):
-    def get_static_question_category(self):
-        sql = """
-            SELECT category FROM static_questions;
-        """
-        return self.manager(sql, fetchall=True)
-
     def get_all_static_question_by_category(self, category):
         sql = """
             SELECT * FROM static_questions
-            WHERE category = 'first_category';
+            WHERE category = %s;
         """
-        return self.manager(sql, fetchall=True)
+        return self.manager(sql, category, fetchone=True)
 
 
 class DynamicQuestionManager(DataBase):
-    def add_dynamic_question(self, student_name, student_group, description, student_username, student_chat_id):
+    def add_dynamic_question(self, user_id, description, category_id):
         sql = """
-            INSERT INTO dynamic_questions(student_name, student_group, description, student_username, student_chat_id)
-            VALUES (%s, %s, %s, %s, %s);
+            INSERT INTO dynamic_questions(user_id, description, category_id)
+            VALUES (%s, %s, %s);
         """
-        self.manager(sql, student_name, student_group, description, student_username, student_chat_id, commit=True)
+        self.manager(sql, user_id, description, category_id, commit=True)
 
-    def get_has_dynamic_question(self):
+    def get_dynamic_question_by_category(self, category_name):
         sql = """
-            SELECT student_name, student_group, description, student_username, student_chat_id FROM dynamic_questions
-            WHERE answer = false;
+            SELECT 
+                last_name, 
+                first_name, 
+                patronymic, 
+                us_group, 
+                username, 
+                name AS category, 
+                description
+            FROM dynamic_questions 
+            JOIN users ON dynamic_questions.user_id = users.user_id
+            JOIN question_categories ON dynamic_questions.category_id = question_categories.category_id
+            WHERE question_categories.name = %s AND answer = 'false';
+        """
+        return self.manager(sql, category_name, fetchall=True)
+
+
+class QuestionCategoryManager(DataBase):
+    def get_category(self):
+        sql = """
+            SELECT name FROM question_categories;
         """
         return self.manager(sql, fetchall=True)
+
+    def get_category_id_by_name(self, category_name):
+        sql = """
+            SELECT category_id FROM question_categories
+            WHERE name = %s;
+        """
+        return self.manager(sql, category_name, fetchone=True)
 
 
 class MainManager:
@@ -142,9 +192,11 @@ class MainManager:
         self.user: UserManager = UserManager()
         self.static_question: StaticQuestionManager = StaticQuestionManager()
         self.dynamic_question: DynamicQuestionManager = DynamicQuestionManager()
+        self.question_category: QuestionCategoryManager = QuestionCategoryManager()
 
 
 creator = TableCreator()
 # creator.create_user_table()
+# creator.create_question_categories()
 # creator.create_static_question_table()
 # creator.create_dynamic_question_table()

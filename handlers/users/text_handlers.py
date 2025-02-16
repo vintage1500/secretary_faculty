@@ -2,7 +2,8 @@ from warnings import catch_warnings
 
 from telebot.types import Message, ReplyKeyboardRemove
 from data.loader import bot, manager
-from keyboards.inline import show_static_question_category, start_menu, registration_menu
+from keyboards.default import registration_menu
+from keyboards.inline import show_static_question_category, start_menu
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Пройти регистрацию")
@@ -16,20 +17,20 @@ def register(message: Message):
                                   f"Сообщение должно иметь такой вид:\n"
                                   f"Иванов Иван Иванович\n222-222\n"
                                   f"Все должно быть одним сообщением!", reply_markup=ReplyKeyboardRemove())
-        bot.register_next_step_handler(message, get_new_user, message.text)
+        bot.register_next_step_handler(message, get_new_user)
 
 
-def get_new_user(message: Message, text):
+def get_new_user(message: Message):
     chat_id = message.chat.id
     try:
         student_info = message.text.split()
-        first_name = student_info[0]
-        second_name = student_info[1]
-        third_name = student_info[2]
+        last_name = student_info[0]
+        first_name = student_info[1]
+        patronymic = student_info[2]
         us_group = student_info[3]
         username = message.from_user.username
-        manager.user.add_user(first_name, second_name, third_name, us_group, username, chat_id,)
-        bot.send_message(chat_id, "Регистрация прошла успешно", reply_markup=start_menu())
+        manager.user.add_user(last_name, first_name, patronymic, us_group, username, chat_id,)
+        bot.send_message(chat_id, f"Регистрация прошла успешно. Здравствуйте, {first_name}", reply_markup=start_menu())
     except Exception as e:
         bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
                          reply_markup=registration_menu())
@@ -70,17 +71,6 @@ def get_new_question(message: Message):
                                                   chat_id)
     bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных", reply_markup=start_menu())
     # request_new_question(message, message.text)
-
-
-# def request_new_question(message: Message, question_text):
-#     chat_id = message.chat.id
-#     student_info = question_text.split("\n")
-#     student_name = student_info[0]
-#     student_group = student_info[1]
-#     student_question = student_info[2]
-#     student_username = message.from_user.username
-#     manager.dynamic_question.add_dynamic_question(student_name, student_group, student_question, student_username, chat_id)
-#     bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных")
 
 
 # @bot.message_handler(func=lambda msg: msg.text == "Принять запрос")
