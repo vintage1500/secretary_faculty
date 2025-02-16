@@ -1,9 +1,8 @@
 from warnings import catch_warnings
 
-from telebot.types import Message
+from telebot.types import Message, ReplyKeyboardRemove
 from data.loader import bot, manager
 from keyboards.inline import show_static_question_category, start_menu, registration_menu
-from telebot.types import ReplyKeyboardRemove
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Пройти регистрацию")

@@ -59,10 +59,10 @@ def start_ask_question(callback: CallbackQuery):
                               f"Иванов Иван\n222-222\n*Вопрос*\n"
                               f"Все должно быть одним сообщением!",
                           chat_id, callback.message.message_id, reply_markup=back_main())
-    bot.register_next_step_handler(callback.message, get_new_question)
+    bot.register_next_step_handler(callback.message, get_new_question, callback.message.id)
 
 
-def get_new_question(message: Message):
+def get_new_question(message: Message, old_message_id):
     chat_id = message.chat.id
     question_text = message.text
     student_info = question_text.split("\n")
@@ -72,4 +72,6 @@ def get_new_question(message: Message):
     student_username = message.from_user.username
     manager.dynamic_question.add_dynamic_question(student_name, student_group, student_question, student_username,
                                                   chat_id)
-    bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных", reply_markup=start_menu())
+    bot.delete_message(chat_id, old_message_id)
+    bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных. Вы возвращены в систему",
+                     reply_markup=start_menu())
