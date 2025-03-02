@@ -96,3 +96,65 @@ def continue_answer_question(callback: CallbackQuery):
     # q = [print(" ".join(question[0:2]), question[3], question[6][:10]) for question in questions]
     bot.edit_message_text(f"Ответить на вопросы. Категория {category_name}\n\nВыберите студента, которому ответить",
                           chat_id, callback.message.message_id, reply_markup=show_category_questions(category_name))
+
+
+@bot.callback_query_handler(func=lambda call: 'telephone' in call.data)
+def show_telephones(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    string = """
+Телефонный справочник    
+
+Многофункциональный центр (ЦРС) на Большой Семеновской:
+Аудитория: В-207
+Телефон: (495) 223-05-23, доб. 1105, 1175, 1215, 1375
+E-mail: crs-bs@mospolytech.ru
+
+Многофункциональный центр (ЦРС) на Прянишникова:
+Аудитория: 1311
+Телефон: (495) 223-05-23 доб. 4056, 4059, 4060
+E-mail: crs-pryaniki@mospolytech.ru
+
+Мобилизационный отдел: 
+Начальник: Колесников Валерий Алексеевич
+Адрес: г. Москва, ул. Б. Семёновская, 38, корп. Н
+кабинет Н-517
+тел: +7 495 223 05 23, доб. 1025
+
+Студенческий городок:
+Директор: Лукашова Марина Ивановна
+Телефон для обращений:
++7 495 223 05 23
+
+Профсоюзная организация: 
+Адрес: г. Москва, ул. Б. Семёновская, 38, корп. В
+кабинет В-202
+Телефон: +7 495 223 05 31
+Почта: profkom@mospolytech.ru
+
+Бухгалтерия:
+Адрес: г. Москва, ул. Б. Семёновская, 38, корп. А
+кабинет А-307
+
+Проектная деятельность:
+Начальник : Петухов Иван
+Сергеевич
+Адрес: г. Москва, ул. Б. Семёновская, 38, корп. А
+кабинет А-102
+Телефон: 7 495 223 05 23 доб. 1539
+Почта: cpd@mospolytech.ru
+
+
+Общее:
+Контакт-центр:
++7 (495) 223-05-23
++7 (495) 276-37-36
+Часы работы:
+Пн. — Чт.: 9:00 - 21:00
+Пт: 9:00 - 20:00
+Сб. — Вс.: 9:30 - 17:15
+
+Общие вопросы (кроме вопросов о поступлении):
+mospolytech@mospolytech.ru
+"""
+    bot.edit_message_text(string, chat_id, callback.message.id, reply_markup=back_main())
+
