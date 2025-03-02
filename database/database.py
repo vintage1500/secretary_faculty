@@ -64,15 +64,6 @@ class TableCreator(DataBase):
     def create_dynamic_question_table(self):
         sql = """
             DROP TABLE IF EXISTS dynamic_questions;
-            CREATE TABLE IF NOT EXISTS dynamic_questions1 (
-                dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                student_name TEXT NOT NULL,
-                student_group TEXT NOT NULL,
-                description TEXT NOT NULL,
-                student_username TEXT NOT NULL,
-                student_chat_id TEXT NOT NULL,
-                answer BOOLEAN DEFAULT false
-            );
             CREATE TABLE IF NOT EXISTS dynamic_questions (
                 dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -89,6 +80,19 @@ class TableCreator(DataBase):
             CREATE TABLE IF NOT EXISTS question_categories (
                 category_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL
+            );
+        """
+        self.manager(sql, commit=True)
+
+    def create_question_subcategories(self):
+        sql = """
+            DROP TABLE IF EXISTS question_subcategories;
+            CREATE TABLE IF NOT EXISTS question_subcategories (
+                subcategory_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                category_id INTEGER REFERENCES question_categories(category_id) ON DELETE CASCADE,   
+                CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES question_categories (category_id) ON DELETE CASCADE
             );
         """
         self.manager(sql, commit=True)
@@ -186,6 +190,29 @@ class QuestionCategoryManager(DataBase):
         """
         return self.manager(sql, category_name, fetchone=True)
 
+    def get_name_by_category_id(self, category_id):
+        sql = """
+            SELECT name FROM question_categories
+            WHERE category_id = %s
+        """
+        return self.manager(sql, category_id, fetchone=True)
+
+
+class QuestionSubcategoryManager(DataBase):
+    def get_subcategories_by_category_id(self, category_id):
+        sql = """
+            SELECT subcategory_id, name FROM question_subcategories
+            WHERE category_id = %s;
+        """
+        return self.manager(sql, category_id, fetchall=True)
+
+    def get_subcategories_description_by_subcategory_id(self, category_id):
+        sql = """
+            SELECT name, description FROM question_subcategories
+            WHERE subcategory_id = %s;
+        """
+        return self.manager(sql, category_id, fetchmany=True)
+
 
 class MainManager:
     def __init__(self):
@@ -193,10 +220,12 @@ class MainManager:
         self.static_question: StaticQuestionManager = StaticQuestionManager()
         self.dynamic_question: DynamicQuestionManager = DynamicQuestionManager()
         self.question_category: QuestionCategoryManager = QuestionCategoryManager()
+        self.question_subcategory: QuestionSubcategoryManager = QuestionSubcategoryManager()
 
 
 creator = TableCreator()
 # creator.create_user_table()
 # creator.create_question_categories()
+# creator.create_question_subcategories()
 # creator.create_static_question_table()
 # creator.create_dynamic_question_table()

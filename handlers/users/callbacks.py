@@ -30,6 +30,37 @@ def show_faq_menu(callback: CallbackQuery):
                           reply_markup=show_static_question_category())
 
 
+@bot.callback_query_handler(func=lambda call: "category" in call.data)
+def show_subcategory(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    _, category_name = callback.data.split("_")
+    if category_name == "Бланки заявлений":
+        bot.edit_message_text("""
+Бланки заявлений
+        
+Для получения актуальных бланков заявлений необходимо выполнить следующие шаги: 
+
+1. Перейти в личный кабинет и выбрать «Старый дизайн». 
+2. В разделе «Категории» найти и открыть «Бланки заявлений». 
+3. Ознакомиться со списком актуальных бланков для заявлений. 
+
+Вы можете выбрать необходимый бланк и использовать его.        
+""", chat_id, callback.message.message_id, reply_markup=back_static_categories())
+    else:
+        category_id = manager.question_category.get_category_id_by_name(category_name)[0]
+        bot.edit_message_text(f"{category_name}\n\nВыберите подкатегорию", chat_id, callback.message.message_id,
+                              reply_markup=show_subcategories(category_id))
+
+
+@bot.callback_query_handler(func=lambda call: "subcat" in call.data)
+def show_subcategory_question_description(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    _, subcategory_id = callback.data.split("_")
+    question_info = manager.question_subcategory.get_subcategories_description_by_subcategory_id(subcategory_id)[0]
+    string = question_info[0] + "\n\n" + question_info[1]
+    bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_static_categories())
+
+
 @bot.callback_query_handler(func=lambda call: "profile" in call.data)
 def show_profile(callback: CallbackQuery):
     chat_id = callback.message.chat.id
@@ -57,7 +88,7 @@ def start_ask_question(callback: CallbackQuery):
 
 
 @bot.callback_query_handler(func=lambda call: "ctg" in call.data)
-def start_ask_question(callback: CallbackQuery):
+def start_ask_question_ctg(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     _, category_name = callback.data.split("_")
     bot.edit_message_text(f"Задать вопрос. Категория {category_name}\n\nВведите вопрос ОДНИМ сообщением!\n", chat_id,
@@ -101,53 +132,51 @@ def continue_answer_question(callback: CallbackQuery):
 @bot.callback_query_handler(func=lambda call: 'telephone' in call.data)
 def show_telephones(callback: CallbackQuery):
     chat_id = callback.message.chat.id
-    string = """
+    string = f"""
 Телефонный справочник    
 
 Многофункциональный центр (ЦРС) на Большой Семеновской:
 Аудитория: В-207
-Телефон: (495) 223-05-23, доб. 1105, 1175, 1215, 1375
+Телефон: +74952230523, доб. 1105, 1175, 1215, 1375
 E-mail: crs-bs@mospolytech.ru
 
 Многофункциональный центр (ЦРС) на Прянишникова:
-Аудитория: 1311
-Телефон: (495) 223-05-23 доб. 4056, 4059, 4060
+Аудитория: ПР1311
+Телефон: +74952230523, доб. 4056, 4059, 4060
 E-mail: crs-pryaniki@mospolytech.ru
 
 Мобилизационный отдел: 
 Начальник: Колесников Валерий Алексеевич
 Адрес: г. Москва, ул. Б. Семёновская, 38, корп. Н
-кабинет Н-517
-тел: +7 495 223 05 23, доб. 1025
+Аудитория: Н-517
+Телефон: +74952230523, доб. 1025
 
 Студенческий городок:
 Директор: Лукашова Марина Ивановна
-Телефон для обращений:
-+7 495 223 05 23
+Телефон: +74952230523
 
 Профсоюзная организация: 
 Адрес: г. Москва, ул. Б. Семёновская, 38, корп. В
-кабинет В-202
-Телефон: +7 495 223 05 31
+Аудитория: В-202
+Телефон: +74952230531
 Почта: profkom@mospolytech.ru
 
 Бухгалтерия:
 Адрес: г. Москва, ул. Б. Семёновская, 38, корп. А
-кабинет А-307
+Аудитория: А-307
 
 Проектная деятельность:
-Начальник : Петухов Иван
-Сергеевич
+Начальник : Петухов Иван Сергеевич
 Адрес: г. Москва, ул. Б. Семёновская, 38, корп. А
-кабинет А-102
-Телефон: 7 495 223 05 23 доб. 1539
+Аудитория А-102
+Телефон: +74952230523 доб. 1539
 Почта: cpd@mospolytech.ru
 
 
 Общее:
 Контакт-центр:
-+7 (495) 223-05-23
-+7 (495) 276-37-36
++74952230523
++74952763736
 Часы работы:
 Пн. — Чт.: 9:00 - 21:00
 Пт: 9:00 - 20:00

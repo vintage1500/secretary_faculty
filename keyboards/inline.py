@@ -83,10 +83,29 @@ def show_category_questions(category_name):
     return markup
 
 
+def show_subcategories(category_id):
+    markup = InlineKeyboardMarkup(row_width=True)
+    subcategories = manager.question_subcategory.get_subcategories_by_category_id(category_id)
+    buttons = [InlineKeyboardButton(text=subcategory[1], callback_data=f"subcat_{subcategory[0]}") for subcategory in subcategories]
+    markup.add(*buttons)
+    markup.add(
+        InlineKeyboardButton(text="Назад", callback_data=f"faq")
+    )
+    return markup
+
+
 def back_main():
     markup = InlineKeyboardMarkup(row_width=True)
     markup.add(
         InlineKeyboardButton(text="Назад", callback_data=f"main")
+    )
+    return markup
+
+
+def back_static_categories():
+    markup = InlineKeyboardMarkup(row_width=True)
+    markup.add(
+        InlineKeyboardButton(text="Назад", callback_data=f"faq")
     )
     return markup
 
