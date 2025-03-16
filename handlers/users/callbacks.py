@@ -76,7 +76,10 @@ def show_profile(callback: CallbackQuery):
 def show_rules(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     string = "Правила\n\n🔖 Используя сервис Секретарь Факультета, Вы автоматически принимаете " \
-             "и соглашаетесь с данными правилами*"
+             "и соглашаетесь с данными правилами* " \
+             "\n\nДанный бот, созданный в рамках учебного проекта «Чат-боты для Московского Политеха». " \
+             "В настоящее время он находится на этапе разработки и тестирования, поэтому его" \
+             " функциональность может дополняться и улучшаться."
     bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
 
 

@@ -12,10 +12,12 @@ def start(message: Message):
     user_administrator = manager.user.get_is_user_administrator(chat_id)
     if user_administrator is None or not user_administrator[0]:
         if first_name:
-            text += f", {first_name[0]}. Вы вошли в систему"
+            text += f", {first_name[0]}, я чат-бот, созданный в рамках учебного проекта «Чат-боты для Московского " \
+                    f"Политеха». Моя задача — помочь вам быстро получать нужную информацию и решать вопросы" \
+                    f" в удобном формате."
             bot.send_message(chat_id, text, reply_markup=start_menu())
         else:
-            text += ". Пройдите регистрацию\n"
+            text += ". Перед использованием необходимо пройти регистрацию.\n"
             bot.send_message(chat_id, text, reply_markup=registration_menu())
     else:
         text += f", {first_name[0]}. У вас роль администратора!"
