@@ -1,5 +1,5 @@
 import psycopg2
-from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD
+from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT
 from datetime import datetime
 # зачем нам chat_id в частозадаваемых
 
@@ -10,7 +10,9 @@ class DataBase:
             database=DB_NAME,
             user=DB_USER,
             password=DB_PASSWORD,
-            host=DB_HOST
+            host=DB_HOST,
+            port=DB_PORT,
+            client_encoding="UTF8"
         )
 
     def manager(self, sql, *args,
@@ -45,6 +47,71 @@ class TableCreator(DataBase):
                 username TEXT NOT NULL,
                 administrator BOOLEAN DEFAULT false,
                 chat_id BIGINT NOT NULL UNIQUE
+            );
+        """
+        self.manager(sql, commit=True)
+
+    def ensure_tables(self):
+        """Create all tables if they do not exist (safe, does not DROP tables).
+
+        This method is idempotent and will create tables in the order required
+        by foreign key constraints.
+        """
+        # 1) question_categories
+        sql = """
+            CREATE TABLE IF NOT EXISTS question_categories (
+                category_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL
+            );
+        """
+        self.manager(sql, commit=True)
+
+        # 2) question_subcategories (depends on question_categories)
+        sql = """
+            CREATE TABLE IF NOT EXISTS question_subcategories (
+                subcategory_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                category_id INTEGER REFERENCES question_categories(category_id) ON DELETE CASCADE,
+                CONSTRAINT fk_category FOREIGN KEY (category_id) REFERENCES question_categories (category_id) ON DELETE CASCADE
+            );
+        """
+        self.manager(sql, commit=True)
+
+        # 3) users
+        sql = """
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                last_name TEXT NOT NULL,
+                first_name TEXT NOT NULL,
+                patronymic TEXT NOT NULL,
+                us_group TEXT NOT NULL,
+                username TEXT NOT NULL,
+                administrator BOOLEAN DEFAULT false,
+                chat_id BIGINT NOT NULL UNIQUE
+            );
+        """
+        self.manager(sql, commit=True)
+
+        # 4) static_questions (depends on question_categories)
+        sql = """
+            CREATE TABLE IF NOT EXISTS static_questions (
+                static_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                name TEXT NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES question_categories(category_id) ON DELETE CASCADE,
+                answer TEXT NOT NULL
+            );
+        """
+        self.manager(sql, commit=True)
+
+        # 5) dynamic_questions (depends on users and question_categories)
+        sql = """
+            CREATE TABLE IF NOT EXISTS dynamic_questions (
+                dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                description TEXT NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES question_categories(category_id) ON DELETE CASCADE,
+                answer BOOLEAN DEFAULT false
             );
         """
         self.manager(sql, commit=True)
@@ -223,9 +290,11 @@ class MainManager:
         self.question_subcategory: QuestionSubcategoryManager = QuestionSubcategoryManager()
 
 
-creator = TableCreator()
-# creator.create_user_table()
-# creator.create_question_categories()
-# creator.create_question_subcategories()
-# creator.create_static_question_table()
-# creator.create_dynamic_question_table()
+# Instantiate table creator only when explicitly run, not on import
+if __name__ == "__main__":
+    creator = TableCreator()
+    # creator.create_user_table()
+    # creator.create_question_categories()
+    # creator.create_question_subcategories()
+    # creator.create_static_question_table()
+    # creator.create_dynamic_question_table()
