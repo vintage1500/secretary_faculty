@@ -1,7 +1,11 @@
-from telebot.types import CallbackQuery, Message
+import os
+import glob
+from telebot.types import CallbackQuery, Message, InputMediaPhoto
+from telebot.apihelper import ApiTelegramException
 from data.loader import bot, manager
 from keyboards.default import registration_menu
 from keyboards.inline import *
+from keyboards.inline import campus_detail_menu, dorm_detail_menu
 
 
 @bot.callback_query_handler(func=lambda call: "main" in call.data)
@@ -13,21 +17,331 @@ def back_to_main_menu(callback: CallbackQuery):
     if user_administrator is None or user_administrator[0] is False:
         if first_name:
             text += f", {first_name[0]}. Вы вошли в систему"
-            bot.edit_message_text(text, chat_id, callback.message.message_id, reply_markup=start_menu())
+            safe_edit_text(chat_id, callback.message.message_id, text, reply_markup=start_menu())
         else:
             text += ". Пройдите регистрацию"
-            bot.send_message(text, chat_id, callback.message.message_id,  reply_markup=registration_menu())
+            bot.send_message(chat_id, text, reply_markup=registration_menu())
     else:
         text += f", {first_name[0]}. У вас роль администратора!"
-        bot.edit_message_text(text, chat_id, callback.message.message_id, reply_markup=start_administrator_menu())
+        safe_edit_text(chat_id, callback.message.message_id, text, reply_markup=start_administrator_menu())
 
 
 @bot.callback_query_handler(func=lambda call: "faq" in call.data)
 def show_faq_menu(callback: CallbackQuery):
     chat_id = callback.message.chat.id
-    bot.edit_message_text("Часто задаваемые вопросы (FAQ)\n\nВыберите категорию вашего вопроса",
-                          chat_id, callback.message.message_id,
-                          reply_markup=show_static_question_category())
+    safe_edit_text(chat_id, callback.message.message_id,
+                   "Часто задаваемые вопросы (FAQ)\n\nВыберите категорию вашего вопроса",
+                   reply_markup=show_static_question_category())
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "way")
+def show_way_menu(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    safe_edit_text(chat_id, callback.message.message_id,
+                   "Как добраться до...\n\nВыберите направление",
+                   reply_markup=how_to_get_menu())
+
+
+@bot.callback_query_handler(func=lambda call: "way_campus" in call.data)
+def show_campuses(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    safe_edit_text(chat_id, callback.message.message_id,
+                   "Как добраться до корпуса...\n\nВыберите корпус",
+                   reply_markup=campuses_menu())
+
+
+@bot.callback_query_handler(func=lambda call: "way_dorm" in call.data)
+def show_dorms_menu(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    safe_edit_text(chat_id, callback.message.message_id,
+                   "Как добраться до общежития...\n\nВыберите общежитие",
+                   reply_markup=dorms_menu())
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("dorm_"))
+def show_dorm_info(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    dorm_num = callback.data.split("_")[1]
+    info = {
+        "1": (
+            "1 общежитие:\n\n"
+            "Адрес: ул. Малая Семёновская, д. 12\n"
+            "Метро: Электрозаводская\n\n"
+            "Общая информация: максимально удобно к корпусу 'На Большой Семёновской'.\n"
+            "Тип: блочный — по 2 комнаты в блоке с санузлом и душевой, кухня общая на этаже.\n"
+            "Проживающих в блоке: 5\n"
+            "Инфраструктура: коворкинг, тренажерный зал, прачечная, спортивная площадка, бесплатный Wi‑Fi."
+        ),
+        "2": (
+            "2 общежитие:\n\n"
+            "Адрес: ул. 7‑я Парковая, д 9/26\n"
+            "Метро: Первомайская\n\n"
+            "Тип: коридорный — раздельные комнаты вдоль коридора, санитарный узел и кухня на этаже, общая душевая.\n"
+            "Проживающих в комнате: 3\n"
+            "Инфраструктура: коворкинг, тренажерный зал, прачечная, спортивная площадка, бесплатный Wi‑Fi."
+        ),
+        "3": (
+            "3 общежитие:\n\n"
+            "Адрес: ул. 1‑я Дубровская, д. 16А, стр. 2\n"
+            "Метро: Дубровка\n\n"
+            "Тип: коридорный — раздельные комнаты вдоль коридора, санитарный узел и кухня на этаже, общая душевая.\n"
+            "Проживающих в комнате: 3\n"
+            "Инфраструктура: коворкинг, прачечная, бесплатный Wi‑Fi."
+        ),
+        "4": (
+            "4 общежитие:\n\n"
+            "Адрес: ул. 800‑летия Москвы, д. 28, к. 1\n"
+            "Метро: Яхромская / МЦД‑1 Бескудниково\n\n"
+            "Тип: квартирный — по 1‑3 комнаты в блоке с санузлом, душевой и кухней.\n"
+            "Проживающих в квартире: 3‑7\n"
+            "Инфраструктура: прачечная, коворкинг, бесплатный Wi‑Fi."
+        ),
+        "5": (
+            "5 общежитие:\n\n"
+            "Адрес: ул. Михалковская, д. 7, к. 3\n"
+            "Метро: МЦК Коптево\n\n"
+            "Тип: блочный — по 2 комнаты в блоке с санузлом и душевой, кухня общая на этаже.\n"
+            "Проживающих в блоке: 5\n"
+            "Инфраструктура: коворкинг, прачечная, бесплатный Wi‑Fi."
+        ),
+        "6": (
+            "6 общежитие:\n\n"
+            "Адрес: ул. Бориса Галушкина, д. 9\n"
+            "Метро: ВДНХ\n\n"
+            "Тип: блочный — по 2 комнаты в блоке с санузлом и душевой, кухня общая на этаже.\n"
+            "Проживающих в блоке: 4‑6\n"
+            "Инфраструктура: коворкинг, тренажерный зал, прачечная, бесплатный Wi‑Fi."
+        ),
+        "7": (
+            "7 общежитие:\n\n"
+            "Адрес: ул. Павла Корчагина, д. 20А, к. 3\n"
+            "Метро: ВДНХ\n\n"
+            "Тип: коридорный — раздельные комнаты вдоль коридора, санузел и кухня на этаже, общая душевая.\n"
+            "Проживающих в комнате: 3\n"
+            "Инфраструктура: комната самоподготовки, прачечная, бесплатный Wi‑Fi."
+        ),
+        "8": (
+            "8 общежитие:\n\n"
+            "Адрес: Рижский проезд, д. 15, к. 2\n"
+            "Метро: ВДНХ\n\n"
+            "Тип: квартирный — по 2 комнаты в блоке с санузлом, душевой и кухней.\n"
+            "Проживающих в квартире: 5‑6\n"
+            "Инфраструктура: прачечная, спортивный зал, бесплатный Wi‑Fi."
+        ),
+        "9": (
+            "9 общежитие:\n\n"
+            "Адрес: Рижский проезд, д. 15, к. 1\n"
+            "Метро: ВДНХ\n\n"
+            "Тип: квартирный/коридорный — информация будет уточнена.\n"
+            "Инфраструктура: прачечная, бесплатный Wi‑Fi."
+        ),
+        "10": (
+            "10 общежитие:\n\n"
+            "Адрес: 1‑й Балтийский переулок, д. 6/21, к. 3\n"
+            "Метро: Сокол\n\n"
+            "Тип: смешанный коридорный и блочный. Коридорный — комнаты вдоль коридора, санузел, душевая и кухня на этаже.\n"
+            "Блочный — по 2 комнаты в блоке с санузлом и душевой, кухня общая на этаже.\n"
+            "Проживающих в комнате: 1‑2\n"
+            "Инфраструктура: коворкинг, прачечная, бесплатный Wi‑Fi."
+        ),
+        "11": (
+            "11 общежитие:\n\n"
+            "Адрес: улица Павла Корчагина, 22Ак2\n"
+            "Метро: ВДНХ\n\n"
+            "Тип: повышенной комфортности, коридорный — раздельные комнаты вдоль коридора, санузел, душевая и кухня на каждом этаже.\n"
+            "Проживающих в комнате: 3\n"
+            "Инфраструктура: комната самоподготовки, прачечная, бесплатный Wi‑Fi."
+        ),
+    }
+    text = info.get(dorm_num, "Информация будет добавлена позже.")
+    _send_or_edit_with_media(chat_id, callback.message.message_id, text, "dorms", f"dorm_{dorm_num}", dorm_detail_menu(dorm_num))
+
+
+@bot.callback_query_handler(func=lambda call: call.data in ["camp_bs", "camp_avto", "camp_pk", "camp_mikh", "camp_pry"]) 
+def show_campus_info(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    data = callback.data
+    if data == "camp_bs":
+        text = (
+            "Корпус на Большой Семёновской:\n\n"
+            "Адрес: ул. Б. Семёновская, д. 38.\n"
+            "Метро: Электрозаводская\n\n"
+            "Как пройти от метро до корпуса: см. маршрут на скриншоте.\n\n"
+            "Карта подкорпусов: см. скриншот."
+        )
+    elif data == "camp_avto":
+        text = (
+            "Корпус на Автозаводской:\n\n"
+            "Адрес: ул. Автозаводская, д. 16.\n"
+            "Метро: Автозаводская\n\n"
+            "Пешком: 1 выход из метро Автозаводская.\n"
+            "На автобусе: 3 выход из метро Автозаводская → автобусы 766, 944, с799 → остановки 'Парк Легенд' или 'ТЦ Ривьера'."
+        )
+    elif data == "camp_pk":
+        text = (
+            "Корпус на Павла Корчагина:\n\n"
+            "Адрес: ул. Павла Корчагина, 22.\n"
+            "Метро: ВДНХ\n\n"
+            "Пешком: 4 выход из метро ВДНХ.\n"
+            "На автобусе: 4 выход → автобус 378 → остановка 'Школа'.\n"
+            "Электричка (Ярославское направление): станция 'Маленковская'."
+        )
+    elif data == "camp_mikh":
+        text = (
+            "Корпус на Михалковской:\n\n"
+            "Адрес: ул. Михалковская, 7.\n"
+            "Метро: МЦК Коптево\n\n"
+            "Пешком: 2 выход из метро Коптево.\n"
+            "На автобусе: от 'Проезд Черепановых' автобусы 72, 427, 801 → 'Политехнический университет'.\n"
+            "На трамвае: от 'Михалково 2А' трамвай 29 → 'Политехнический университет'."
+        )
+    else:
+        text = (
+            "Корпус на Прянишникова:\n\n"
+            "Адрес: ул. Прянишникова, 2А.\n"
+            "Метро: МЦК Коптево\n\n"
+            "Как пройти от метро до корпуса:\n"
+            "Пешком: 2 выход из метро Коптево."
+        )
+    _send_or_edit_with_media(chat_id, callback.message.message_id, text, "campuses", data, campus_detail_menu(data))
+
+
+def _send_or_edit_with_media(chat_id: int, message_id: int, text: str, subdir: str, prefix: str, reply_markup):
+    """Отправляет или редактирует сообщение с медиа (если есть) и кнопками"""
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "media", subdir))
+    print(f"[DEBUG] Looking for media in: {base_dir}")
+    print(f"[DEBUG] Prefix: {prefix}")
+    
+    patterns = [os.path.join(base_dir, f"{prefix}_*.{ext}") for ext in ("jpg", "jpeg", "png", "webp")]
+    # Доп. варианты имён для удобства (напр. БС1.jpg / БС2.jpg для camp_bs, ОБ1.jpg для dorm_1)
+    alt_prefixes = {
+        "camp_bs": ["БС1", "БС2"],
+        "camp_avto": ["АВ1", "АВ2"],
+        "camp_pk": ["ПК1", "ПК2", "ПК3"],
+        "camp_mikh": ["Мих"],
+        "camp_pry": ["ПР1", "ПР2", "ПР3"],
+        # Общежития
+        "dorm_1": ["ОБ1"],
+        "dorm_2": ["ОБ2"],
+        "dorm_3": ["ОБ3"],
+        "dorm_4": ["ОБ4"],
+        "dorm_5": ["ОБ5"],
+        "dorm_6": ["ОБ6"],
+        "dorm_7": ["ОБ7"],
+        "dorm_8": ["ОБ8"],
+        "dorm_9": ["ОБ9"],
+        "dorm_10": ["ОБ10"],
+        "dorm_11": ["ОБ11"],
+    }
+    if prefix in alt_prefixes:
+        for alt in alt_prefixes[prefix]:
+            for ext in ("jpg", "jpeg", "png", "webp"):
+                patterns.append(os.path.join(base_dir, f"{alt}.{ext}"))
+                patterns.append(os.path.join(base_dir, f"{alt}_*.{ext}"))
+                patterns.append(os.path.join(base_dir, f"{alt}.*.{ext}"))
+    
+    print(f"[DEBUG] Patterns: {patterns}")
+    file_paths = []
+    for pattern in patterns:
+        file_paths.extend(glob.glob(pattern))
+    file_paths.sort()
+    print(f"[DEBUG] Found files: {file_paths}")
+    
+    # Если нет медиа - проверяем, можем ли мы редактировать текст или нужно удалить и создать новое
+    if not file_paths:
+        print(f"[DEBUG] No media files found for {prefix}")
+        # Пробуем отредактировать, если не получается - удаляем и отправляем новое
+        try:
+            safe_edit_text(chat_id, message_id, text, reply_markup=reply_markup)
+            return
+        except Exception as e:
+            print(f"[DEBUG] Could not edit text (maybe photo message?): {e}")
+            try:
+                bot.delete_message(chat_id, message_id)
+            except Exception as e2:
+                print(f"[DEBUG] Could not delete message: {e2}")
+            bot.send_message(chat_id, text, reply_markup=reply_markup)
+            return
+    
+    # Если есть медиа - удаляем старое сообщение и отправляем новое с фото
+    try:
+        bot.delete_message(chat_id, message_id)
+    except Exception as e:
+        print(f"[DEBUG] Could not delete message: {e}")
+    
+    # Отправляем все фото вместе в одном альбоме
+    try:
+        if len(file_paths) == 1:
+            # Если одно фото - отправляем с текстом и кнопками
+            with open(file_paths[0], 'rb') as fh:
+                bot.send_photo(chat_id, fh, caption=text, reply_markup=reply_markup)
+        else:
+            # Если несколько фото - отправляем альбомом, последнее с текстом и кнопками
+            media = []
+            open_files = []
+            try:
+                # Все фото кроме последнего - без caption
+                for fp in file_paths[:-1]:
+                    f = open(fp, 'rb')
+                    open_files.append(f)
+                    media.append(InputMediaPhoto(f))
+                
+                # Последнее фото с текстом
+                f = open(file_paths[-1], 'rb')
+                open_files.append(f)
+                media.append(InputMediaPhoto(f, caption=text))
+                
+                # Отправляем альбом
+                messages = bot.send_media_group(chat_id, media)
+                
+                # К последнему сообщению в альбоме добавляем кнопки
+                if messages and len(messages) > 0:
+                    last_msg = messages[-1]
+                    try:
+                        bot.edit_message_reply_markup(chat_id, last_msg.message_id, reply_markup=reply_markup)
+                    except Exception as e:
+                        print(f"[DEBUG] Could not add buttons to media group: {e}")
+                        # Отправляем кнопки отдельным сообщением
+                        bot.send_message(chat_id, "Выберите действие:", reply_markup=reply_markup)
+            finally:
+                for f in open_files:
+                    try:
+                        f.close()
+                    except Exception:
+                        pass
+    except Exception as e:
+        print(f"[DEBUG] Error sending media: {e}")
+        # Fallback на текст
+        bot.send_message(chat_id, text, reply_markup=reply_markup)
+
+
+def safe_edit_text(chat_id: int, message_id: int, text: str, reply_markup=None):
+    try:
+        bot.edit_message_text(text, chat_id, message_id, reply_markup=reply_markup)
+        return
+    except ApiTelegramException as e:
+        err = str(e)
+        if "message is not modified" in err:
+            # Ignore re-editing with the same content/markup
+            return
+
+        # If message is a media message (photo) there might be no text to edit.
+        # Try editing caption instead. If that fails, delete and send a new message.
+        if "no text in the message to edit" in err or "can't parse entities" in err:
+            try:
+                bot.edit_message_caption(text, chat_id, message_id, reply_markup=reply_markup)
+                return
+            except Exception:
+                # Fallback: delete and send new message
+                try:
+                    bot.delete_message(chat_id, message_id)
+                except Exception:
+                    pass
+                bot.send_message(chat_id, text, reply_markup=reply_markup)
+                return
+
+        # Unknown error - re-raise for outer handlers/logging
+        raise
 
 
 @bot.callback_query_handler(func=lambda call: "category" in call.data)
@@ -35,7 +349,7 @@ def show_subcategory(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     _, category_name = callback.data.split("_")
     if category_name == "Бланки заявлений":
-        bot.edit_message_text("""
+        safe_edit_text(chat_id, callback.message.message_id, """
 Бланки заявлений
         
 Для получения актуальных бланков заявлений необходимо выполнить следующие шаги: 
@@ -45,11 +359,10 @@ def show_subcategory(callback: CallbackQuery):
 3. Ознакомиться со списком актуальных бланков для заявлений. 
 
 Вы можете выбрать необходимый бланк и использовать его.        
-""", chat_id, callback.message.message_id, reply_markup=back_static_categories())
+""", reply_markup=back_static_categories())
     else:
         category_id = manager.question_category.get_category_id_by_name(category_name)[0]
-        bot.edit_message_text(f"{category_name}\n\nВыберите подкатегорию", chat_id, callback.message.message_id,
-                              reply_markup=show_subcategories(category_id))
+    safe_edit_text(chat_id, callback.message.message_id, f"{category_name}\n\nВыберите подкатегорию", reply_markup=show_subcategories(category_id))
 
 
 @bot.callback_query_handler(func=lambda call: "subcat" in call.data)
@@ -58,7 +371,7 @@ def show_subcategory_question_description(callback: CallbackQuery):
     _, subcategory_id = callback.data.split("_")
     question_info = manager.question_subcategory.get_subcategories_description_by_subcategory_id(subcategory_id)[0]
     string = question_info[0] + "\n\n" + question_info[1]
-    bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_static_categories())
+    safe_edit_text(chat_id, callback.message.message_id, string, reply_markup=back_static_categories())
 
 
 @bot.callback_query_handler(func=lambda call: "profile" in call.data)
@@ -69,7 +382,7 @@ def show_profile(callback: CallbackQuery):
               f"Группа: {user_info[3]}")
     if user_info[4]:
         string += "\nВы являетесь администратором"
-    bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
+    safe_edit_text(chat_id, callback.message.message_id, string, reply_markup=back_main())
 
 
 @bot.callback_query_handler(func=lambda call: "rules" in call.data)
@@ -80,22 +393,20 @@ def show_rules(callback: CallbackQuery):
              "\n\nДанный бот, созданный в рамках учебного проекта «Чат-боты для Московского Политеха». " \
              "В настоящее время он находится на этапе разработки и тестирования, поэтому его" \
              " функциональность может дополняться и улучшаться."
-    bot.edit_message_text(string, chat_id, callback.message.message_id, reply_markup=back_main())
+    safe_edit_text(chat_id, callback.message.message_id, string, reply_markup=back_main())
 
 
 @bot.callback_query_handler(func=lambda call: "ask" in call.data)
 def start_ask_question(callback: CallbackQuery):
     chat_id = callback.message.chat.id
-    bot.edit_message_text(f"Задать вопрос\n\nВыберите категорию вопроса", chat_id, callback.message.message_id,
-                          reply_markup=show_dynamic_question_category())
+    safe_edit_text(chat_id, callback.message.message_id, f"Задать вопрос\n\nВыберите категорию вопроса", reply_markup=show_dynamic_question_category())
 
 
 @bot.callback_query_handler(func=lambda call: "ctg" in call.data)
 def start_ask_question_ctg(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     _, category_name = callback.data.split("_")
-    bot.edit_message_text(f"Задать вопрос. Категория {category_name}\n\nВведите вопрос ОДНИМ сообщением!\n", chat_id,
-                          callback.message.message_id, reply_markup=back_dynamic_categories())
+    safe_edit_text(chat_id, callback.message.message_id, f"Задать вопрос. Категория {category_name}\n\nВведите вопрос ОДНИМ сообщением!\n", reply_markup=back_dynamic_categories())
     bot.register_next_step_handler(callback.message, get_new_question, callback.message.id, category_name)
 
 
