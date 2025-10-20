@@ -3,8 +3,8 @@ from data.loader import bot, manager
 from keyboards.default import registration_menu
 from keyboards.inline import start_menu, start_administrator_menu
 
-
-@bot.message_handler(commands=['start'], chat_types='private')
+# во время слияния для исключения конфликта команда для старого старта start1
+@bot.message_handler(commands=['start1'], chat_types='private')
 def start(message: Message):
     chat_id = message.chat.id
     first_name = manager.user.get_first_name(chat_id)
