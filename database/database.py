@@ -1,6 +1,6 @@
 import psycopg2
-from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD
-from datetime import datetime
+from config import DB_USER, DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT
+
 # зачем нам chat_id в частозадаваемых
 
 
@@ -10,14 +10,20 @@ class DataBase:
             database=DB_NAME,
             user=DB_USER,
             password=DB_PASSWORD,
-            host=DB_HOST
+            host=DB_HOST,
+            port=DB_PORT,
+            client_encoding="UTF8",
         )
 
-    def manager(self, sql, *args,
-                fetchone: bool = False,
-                fetchall: bool = False,
-                fetchmany: bool = False,
-                commit: bool = False):
+    def manager(
+        self,
+        sql,
+        *args,
+        fetchone: bool = False,
+        fetchall: bool = False,
+        fetchmany: bool = False,
+        commit: bool = False
+    ):
         with self.database as db:
             with db.cursor() as cursor:
                 cursor.execute(sql, args)
@@ -29,13 +35,14 @@ class DataBase:
                     result = cursor.fetchall()
                 elif fetchmany:
                     result = cursor.fetchmany()
+                else:
+                    result = None
             return result
 
 
 class TableCreator(DataBase):
     def create_user_table(self):
         sql = """
-            DROP TABLE IF EXISTS users;
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 last_name TEXT NOT NULL,
@@ -51,7 +58,6 @@ class TableCreator(DataBase):
 
     def create_static_question_table(self):
         sql = """
-            DROP TABLE IF EXISTS static_questions;
             CREATE TABLE IF NOT EXISTS static_questions (
                 static_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -63,7 +69,6 @@ class TableCreator(DataBase):
 
     def create_dynamic_question_table(self):
         sql = """
-            DROP TABLE IF EXISTS dynamic_questions;
             CREATE TABLE IF NOT EXISTS dynamic_questions (
                 dynamic_question_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -76,7 +81,6 @@ class TableCreator(DataBase):
 
     def create_question_categories(self):
         sql = """
-            DROP TABLE IF EXISTS question_categories;
             CREATE TABLE IF NOT EXISTS question_categories (
                 category_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL
@@ -86,7 +90,6 @@ class TableCreator(DataBase):
 
     def create_question_subcategories(self):
         sql = """
-            DROP TABLE IF EXISTS question_subcategories;
             CREATE TABLE IF NOT EXISTS question_subcategories (
                 subcategory_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -96,6 +99,14 @@ class TableCreator(DataBase):
             );
         """
         self.manager(sql, commit=True)
+
+    def create_all_tables(self):
+        # Order matters because of foreign keys
+        self.create_question_categories()
+        self.create_question_subcategories()
+        self.create_user_table()
+        self.create_static_question_table()
+        self.create_dynamic_question_table()
 
 
 class UserManager(DataBase):
@@ -117,7 +128,16 @@ class UserManager(DataBase):
                INSERT INTO users(last_name, first_name, patronymic, us_group, username, chat_id)
                VALUES (%s, %s, %s, %s, %s, %s);
            """
-        self.manager(sql, last_name, first_name, patronymic, us_group, username, chat_id, commit=True)
+        self.manager(
+            sql,
+            last_name,
+            first_name,
+            patronymic,
+            us_group,
+            username,
+            chat_id,
+            commit=True,
+        )
 
     def get_full_user_info(self, chat_id):
         sql = """
@@ -175,6 +195,21 @@ class DynamicQuestionManager(DataBase):
         """
         return self.manager(sql, category_name, fetchall=True)
 
+    def get_has_dynamic_question(self):
+        sql = """
+            SELECT 
+                last_name, 
+                first_name, 
+                patronymic, 
+                us_group, 
+                username, 
+                description
+            FROM dynamic_questions 
+            JOIN users ON dynamic_questions.user_id = users.user_id
+            WHERE answer = 'false';
+        """
+        return self.manager(sql, fetchall=True)
+
 
 class QuestionCategoryManager(DataBase):
     def get_category(self):
@@ -214,18 +249,41 @@ class QuestionSubcategoryManager(DataBase):
         return self.manager(sql, category_id, fetchmany=True)
 
 
+class DataInitializer(DataBase):
+    def initialize_basic_categories(self):
+        """Инициализирует базовые категории вопросов"""
+        categories = [
+            "Учебный процесс",
+            "Общежитие",
+            "Документы",
+            "Стипендия",
+            "Техническая поддержка",
+            "Другое",
+        ]
+
+        for category in categories:
+            sql = """
+                INSERT INTO question_categories (name) 
+                VALUES (%s) 
+                ON CONFLICT (name) DO NOTHING;
+            """
+            self.manager(sql, category, commit=True)
+
+
 class MainManager:
     def __init__(self):
         self.user: UserManager = UserManager()
         self.static_question: StaticQuestionManager = StaticQuestionManager()
         self.dynamic_question: DynamicQuestionManager = DynamicQuestionManager()
         self.question_category: QuestionCategoryManager = QuestionCategoryManager()
-        self.question_subcategory: QuestionSubcategoryManager = QuestionSubcategoryManager()
+        self.question_subcategory: QuestionSubcategoryManager = (
+            QuestionSubcategoryManager()
+        )
+        self.data_initializer: DataInitializer = DataInitializer()
 
 
-creator = TableCreator()
-# creator.create_user_table()
-# creator.create_question_categories()
-# creator.create_question_subcategories()
-# creator.create_static_question_table()
-# creator.create_dynamic_question_table()
+# Instantiate table creator only when explicitly run, not on import
+if __name__ == "__main__":
+    creator = TableCreator()
+    # Run once manually if needed
+    # creator.create_all_tables()

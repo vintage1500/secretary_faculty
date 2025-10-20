@@ -8,6 +8,9 @@ def start_menu():
         InlineKeyboardButton(text="Часто задаваемые вопросы (FAQ)", callback_data=f"faq"),
     )
     markup.row(
+        InlineKeyboardButton(text="Как добраться до...", callback_data=f"way"),
+    )
+    markup.row(
         InlineKeyboardButton(text="Телефонный справочник", callback_data=f"telephone"),
         InlineKeyboardButton(text="Задать вопрос", callback_data=f"ask")
     )
@@ -115,5 +118,35 @@ def back_dynamic_categories():
     markup.add(
         InlineKeyboardButton(text="Назад", callback_data=f"ask")
     )
+    return markup
+
+
+# --- Как добраться до ... ---
+
+def how_to_get_menu():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text="До корпуса", callback_data=f"way_campus"))
+    markup.add(InlineKeyboardButton(text="До общежития", callback_data=f"way_dorm"))
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"main"))
+    return markup
+
+
+def campuses_menu():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text="Корпус на Большой Семёновской", callback_data=f"camp_bs"))
+    markup.add(InlineKeyboardButton(text="Корпус на Автозаводской", callback_data=f"camp_avto"))
+    markup.add(InlineKeyboardButton(text="Корпус на Павла Корчагина", callback_data=f"camp_pk"))
+    markup.add(InlineKeyboardButton(text="Корпус на Михалковской", callback_data=f"camp_mikh"))
+    markup.add(InlineKeyboardButton(text="Корпус на Прянишникова", callback_data=f"camp_pry"))
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"way"))
+    return markup
+
+
+def dorms_menu():
+    markup = InlineKeyboardMarkup(row_width=1)
+    # 1..11 buttons
+    for i in range(1, 12):
+        markup.add(InlineKeyboardButton(text=f"{i} общежитие", callback_data=f"dorm_{i}"))
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"way"))
     return markup
 
