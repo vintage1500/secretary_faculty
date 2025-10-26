@@ -11,6 +11,9 @@ def start_menu():
         InlineKeyboardButton(text="Как добраться до...", callback_data=f"way"),
     )
     markup.row(
+        InlineKeyboardButton(text="Как оформить карту москвича", callback_data=f"moscow_card"),
+    )
+    markup.row(
         InlineKeyboardButton(text="Телефонный справочник", callback_data=f"telephone"),
         InlineKeyboardButton(text="Задать вопрос", callback_data=f"ask")
     )
@@ -198,5 +201,30 @@ def dorm_detail_menu(dorm_num):
     
     markup.add(InlineKeyboardButton(text="Назад к списку общежитий", callback_data=f"way_dorm"))
     markup.add(InlineKeyboardButton(text="Главное меню", callback_data=f"main"))
+    return markup
+
+
+# --- Карта москвича ---
+
+def moscow_card_menu():
+    """Главное меню карты москвича"""
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text="📱 Через приложение", callback_data=f"card_app"))
+    markup.add(InlineKeyboardButton(text="🌐 Через сайт", callback_data=f"card_website"))
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"main"))
+    return markup
+
+
+def moscow_card_app_guide():
+    """Гайд для оформления карты через приложение"""
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"moscow_card"))
+    return markup
+
+
+def moscow_card_website_guide():
+    """Гайд для оформления карты через сайт"""
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(InlineKeyboardButton(text="Назад", callback_data=f"moscow_card"))
     return markup
 

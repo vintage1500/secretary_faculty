@@ -5,7 +5,7 @@ from telebot.apihelper import ApiTelegramException
 from data.loader import bot, manager
 from keyboards.default import registration_menu
 from keyboards.inline import *
-from keyboards.inline import campus_detail_menu, dorm_detail_menu
+from keyboards.inline import campus_detail_menu, dorm_detail_menu, moscow_card_menu, moscow_card_app_guide, moscow_card_website_guide
 
 
 @bot.callback_query_handler(func=lambda call: "main" in call.data)
@@ -500,4 +500,61 @@ E-mail: crs-pryaniki@mospolytech.ru
 mospolytech@mospolytech.ru
 """
     bot.edit_message_text(string, chat_id, callback.message.id, reply_markup=back_main())
+
+
+# --- Карта москвича ---
+
+@bot.callback_query_handler(func=lambda call: call.data == "moscow_card")
+def show_moscow_card_menu(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    text = (
+        "Как оформить карту москвича\n\n"
+        "Выберите удобный для вас способ оформления:"
+    )
+    safe_edit_text(chat_id, callback.message.message_id, text, reply_markup=moscow_card_menu())
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "card_app")
+def show_moscow_card_app_guide(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    text = (
+        "📱 Оформление карты москвича через приложение\n\n"
+        "Пошаговая инструкция:\n\n"
+        "1️⃣ В приложении \"Моя Москва\" найти раздел услуги и в поисковике написать \"Карта Москвича\"\n\n"
+        "2️⃣ Нажать \"Оформить карту\"\n\n"
+        "3️⃣ Нажать \"Получить услугу\"\n\n"
+        "4️⃣ Заполнить анкету\n\n"
+        "5️⃣ Выбрать пункт выдачи МФЦ\n\n"
+        "6️⃣ Дождаться когда карта будет готова\n\n"
+        "📞 Контакты для вопросов:\n"
+        "• Горячая линия: +7 (495) 539-55-55\n"
+        "• Официальные группы в соцсетях: ВКонтакте и Одноклассники\n\n"
+        "ℹ️ Важная информация:\n"
+        "• Для получения лимитированной карты москвича необходимо подать заявление не ранее 15 августа\n"
+        "• Карту москвича с лимитированным дизайном могут получить дети до 14 лет включительно, если получают карту впервые\n"
+        "• При утере или перевыпуске лимитированной карты, следующая будет со стандартным дизайном"
+    )
+    safe_edit_text(chat_id, callback.message.message_id, text, reply_markup=moscow_card_app_guide())
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "card_website")
+def show_moscow_card_website_guide(callback: CallbackQuery):
+    chat_id = callback.message.chat.id
+    text = (
+        "🌐 Оформление карты москвича через сайт\n\n"
+        "Пошаговая инструкция:\n\n"
+        "1️⃣ Перейти по ссылке и выбрать \"Получить услугу\":\n"
+        "https://www.mos.ru/pgu2/landing/karta_moskvicha\n\n"
+        "2️⃣ Заполнить анкету\n\n"
+        "3️⃣ Выбрать пункт выдачи МФЦ\n\n"
+        "4️⃣ Дождаться когда карта будет готова\n\n"
+        "📞 Контакты для вопросов:\n"
+        "• Горячая линия: +7 (495) 539-55-55\n"
+        "• Официальные группы в соцсетях: ВКонтакте и Одноклассники\n\n"
+        "ℹ️ Важная информация:\n"
+        "• Для получения лимитированной карты москвича необходимо подать заявление не ранее 15 августа\n"
+        "• Карту москвича с лимитированным дизайном могут получить дети до 14 лет включительно, если получают карту впервые\n"
+        "• При утере или перевыпуске лимитированной карты, следующая будет со стандартным дизайном"
+    )
+    safe_edit_text(chat_id, callback.message.message_id, text, reply_markup=moscow_card_website_guide())
 
