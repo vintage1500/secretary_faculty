@@ -1,7 +1,5 @@
-from warnings import catch_warnings
-
 from telebot.types import Message, ReplyKeyboardRemove
-from data.loader import bot, manager
+from data.loader import bot, api
 from keyboards.default import registration_menu
 from keyboards.inline import show_static_question_category, start_menu
 
@@ -9,14 +7,15 @@ from keyboards.inline import show_static_question_category, start_menu
 @bot.message_handler(func=lambda msg: msg.text == "Пройти регистрацию")
 def register(message: Message):
     chat_id = message.chat.id
-    us_ex = manager.user.user_exists(chat_id)
-    if us_ex:
-        bot.send_message(chat_id, "Вы уже вошли в систему")
+    if api.user_exists(chat_id):
+        bot.send_message(chat_id, "Вы уже зарегистрированы ✅")
     else:
-        bot.send_message(chat_id, f"Введите свои ФИО и номер группы\n"
-                                  f"Сообщение должно иметь такой вид:\n"
-                                  f"Иванов Иван Иванович\n222-222\n"
-                                  f"Все должно быть одним сообщением!", reply_markup=ReplyKeyboardRemove())
+        bot.send_message(
+            chat_id,
+            "Введите свои ФИО и номер группы одним сообщением.\n\n"
+            "Пример:\nИванов Иван Иванович\n222-222",
+            reply_markup=ReplyKeyboardRemove()
+        )
         bot.register_next_step_handler(message, get_new_user)
 
 
@@ -29,70 +28,52 @@ def get_new_user(message: Message):
         patronymic = student_info[2]
         us_group = student_info[3]
         username = message.from_user.username
-        manager.user.add_user(last_name, first_name, patronymic, us_group, username, chat_id,)
-        bot.send_message(chat_id, f"Регистрация прошла успешно. Здравствуйте, {first_name}", reply_markup=start_menu())
-    except Exception as e:
-        bot.send_message(chat_id, "Проверьте корректность введенных данных и повторите попытку",
-                         reply_markup=registration_menu())
+
+        if api.add_user(last_name, first_name, patronymic, us_group, username, chat_id):
+            bot.send_message(chat_id, f"Регистрация прошла успешно. Здравствуйте, {first_name}!",
+                             reply_markup=start_menu())
+        else:
+            bot.send_message(chat_id, "Ошибка регистрации. Попробуйте снова.", reply_markup=registration_menu())
+
+    except Exception:
+        bot.send_message(
+            chat_id,
+            "❌ Проверьте корректность введённых данных и повторите попытку.",
+            reply_markup=registration_menu()
+        )
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Отмена")
 def cancel_main_menu(message: Message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "Без регистрации работа невозможно. Для регистрации введите /start",
+    bot.send_message(chat_id, "Регистрация отменена. Для начала введите /start",
                      reply_markup=ReplyKeyboardRemove())
 
 
 @bot.message_handler(func=lambda msg: msg.text == "Часто задаваемые вопросы")
-def start_register(message: Message):
+def start_faq(message: Message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "Выберите нужную вам сферу", reply_markup=show_static_question_category())
-
-
-# @bot.message_handler(func=lambda msg: msg.text == "Задать вопрос")
-# def start_ask_question(message: Message):
-#     chat_id = message.chat.id
-#     bot.send_message(chat_id, f"Введите интересующий вас вопрос\n"
-#                               f"В запросе обязательно должны в такой форме:\n"
-#                               f"Иванов Иван\n222-222\n*Вопрос*\n"
-#                               f"Все должно быть одним сообщением!")
-#     bot.register_next_step_handler(message, get_new_question, message.text)
+    bot.send_message(chat_id, "Выберите нужную вам сферу 👇", reply_markup=show_static_question_category())
 
 
 def get_new_question(message: Message):
     chat_id = message.chat.id
     question_text = message.text
-    student_info = question_text.split("\n")
-    student_name = student_info[0]
-    student_group = student_info[1]
-    student_question = student_info[2]
-    student_username = message.from_user.username
-    manager.dynamic_question.add_dynamic_question(student_name, student_group, student_question, student_username,
-                                                  chat_id)
-    bot.send_message(chat_id, "Вопрос успешно добавлен в базу данных", reply_markup=start_menu())
-    # request_new_question(message, message.text)
+    parts = question_text.split("\n")
 
+    if len(parts) < 3:
+        bot.send_message(chat_id, "❌ Неверный формат. Повторите попытку.", reply_markup=start_menu())
+        return
 
-# @bot.message_handler(func=lambda msg: msg.text == "Принять запрос")
-def start_answer_question(message: Message):
-    chat_id = message.chat.id
-    unanswered_questions = manager.dynamic_question.get_has_dynamic_question()
-    number_of_questions = len(unanswered_questions)
-    if number_of_questions == 1:
-        question_student_name = unanswered_questions[0][0]
-        question_student_group = unanswered_questions[0][1]
-        question_description = unanswered_questions[0][2]
-        question_username = unanswered_questions[0][3]
-        text = (f"Был отправлен вопрос от: {question_student_name}\n"
-                f"Из группы {question_student_group}\n"
-                f"Вопрос: {question_description}\n"
-                f"Ссылка на задающего: @{question_username}\n")
-        bot.send_message(chat_id, text)
+    student_name, student_group, student_question = parts[:3]
+    username = message.from_user.username
+    user_id = api.get_user_id(chat_id)
 
-    elif number_of_questions == 0 or number_of_questions is None:
-        bot.send_message(chat_id, "Нет сообщений")
-    elif number_of_questions > 1:
-        pass
+    if not user_id:
+        bot.send_message(chat_id, "Пользователь не найден. Пройдите регистрацию.", reply_markup=registration_menu())
+        return
+
+    if api.add_dynamic_question(user_id, student_question, 1):  # 1 — временная категория
+        bot.send_message(chat_id, "✅ Вопрос успешно добавлен в базу данных", reply_markup=start_menu())
     else:
-        print("Error in function start_answer_question")
-        bot.send_message(chat_id, "Error in function start_answer_question")
+        bot.send_message(chat_id, "Ошибка при отправке вопроса.", reply_markup=start_menu())

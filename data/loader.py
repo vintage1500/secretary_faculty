@@ -1,8 +1,20 @@
-from telebot import TeleBot
+# data/loader.py
+import os
+import telebot
+from dotenv import load_dotenv
+from data.api_client import APIClient
 
-from config import TOKEN
-from database.database import MainManager
+# Загружаем переменные окружения (.env)
+load_dotenv()
 
-manager = MainManager()
-bot = TeleBot(TOKEN)
+# Получаем токен
+TOKEN = os.getenv("TOKEN")
 
+if not TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env")
+
+# Инициализация бота
+bot = telebot.TeleBot(TOKEN)
+
+# Создание REST-клиента
+api = APIClient()

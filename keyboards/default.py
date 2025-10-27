@@ -1,5 +1,5 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
-from data.loader import manager, bot
+from data.loader import api, bot
 
 
 def registration_menu():

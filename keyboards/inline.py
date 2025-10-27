@@ -1,5 +1,5 @@
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
-from data.loader import manager
+from data.loader import api
 
 
 def start_menu():
